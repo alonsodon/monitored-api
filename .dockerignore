@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+tests/
+.env
+.gitignore
+requirements-dev.txt
+infra/
+*.md
+.DS_Store
+.coverage
+.python-version
+pytest.ini
