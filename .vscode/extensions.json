@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-azuretools.vscode-containers",
+    "docker.docker",
+    "hashicorp.terraform",
+    "github.vscode-github-actions",
+    "redhat.vscode-yaml"
+  ]
+}
