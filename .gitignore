@@ -5,8 +5,14 @@ __pycache__/
 .coverage
 htmlcov/
 .env
+
+# Terraform
+infra/.terraform
+infra/.terraform.lock.hcl
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
+*.tfvars
 .terraform/
 terraform.tfvars
+
 .DS_Store
