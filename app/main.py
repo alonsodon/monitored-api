@@ -1,10 +1,18 @@
 # app/main.py
+import time
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.metrics import (
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+    TASKS_COMPLETED,
+    TASKS_CREATED,
+)
 from app.models import Task
 from app.schemas import TaskCreate, TaskResponse, TaskUpdate
 from app.services import send_notification
@@ -12,6 +20,30 @@ from app.services import send_notification
 app = FastAPI()
 
 DB = Annotated[Session, Depends(get_db)]
+
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)  # deja pasar la request al endpoint
+    duration = time.time() - start
+
+    endpoint = request.url.path
+
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=endpoint,
+        status=response.status_code,
+    ).inc()
+
+    REQUEST_LATENCY.labels(endpoint=endpoint).observe(duration)
+
+    return response
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def get_pagination(skip: int = 0, limit: int = 20) -> dict:
@@ -27,6 +59,7 @@ def create_task(task: TaskCreate, db: DB):
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
+    TASKS_CREATED.inc()
     return new_task
 
 
@@ -51,12 +84,18 @@ def update_task(task_id: int, task_data: TaskUpdate, db: DB):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    was_done = task.done
     for field, value in task_data.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
     db.commit()
     db.refresh(task)
-    if task_data.done:
-        send_notification(str(task.title))
+
+    if not was_done and task.done:  # type: ignore
+        TASKS_COMPLETED.inc()
+        try:
+            send_notification(str(task.title))
+        except Exception:
+            pass
     return task
 
 
