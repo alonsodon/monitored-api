@@ -28,15 +28,17 @@ async def metrics_middleware(request: Request, call_next):
     response = await call_next(request)  # deja pasar la request al endpoint
     duration = time.time() - start
 
-    endpoint = request.url.path
+    route = request.scope.get("route")
+    endpoint = route.path if route else request.url.path
 
-    REQUEST_COUNT.labels(
-        method=request.method,
-        endpoint=endpoint,
-        status=response.status_code,
-    ).inc()
+    if endpoint != "/metrics":
+        REQUEST_COUNT.labels(
+            method=request.method,
+            endpoint=endpoint,
+            status=response.status_code,
+        ).inc()
 
-    REQUEST_LATENCY.labels(endpoint=endpoint).observe(duration)
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(duration)
 
     return response
 
