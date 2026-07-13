@@ -7,7 +7,11 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from app.metrics import REQUEST_COUNT, REQUEST_LATENCY
 from app.routers import tasks
 
-app = FastAPI()
+app = FastAPI(
+    title="Monitored API",
+    description="A production-grade REST API demonstrating FastAPI + PostgreSQL + Docker + Terraform + Prometheus/Grafana",
+    version="1.0.0",
+)
 
 
 @app.middleware("http")
