@@ -56,7 +56,9 @@ alembic/versions/                          # versioned schema migrations (2 revi
 infra/
 ├── main.tf, rds.tf, ec2.tf, ...              # VPC, RDS, EC2 — recreated/destroyed freely
 └── bootstrap/                                  # S3 state bucket, DynamoDB lock, OIDC role, ECR — permanent
-monitoring/prometheus.yml                          # scrape config
+monitoring/
+├── prometheus.yml      # scrape config + reference to alert_rules.yml
+└── alert_rules.yml     # alerting rules: error rate, P95 latency, uptime
 scripts/                                             # AWS cost/resource audit helpers
 docker-compose.yml                                     # local stack: api + db + prometheus + grafana
 Dockerfile                                               # multi-stage production build
@@ -108,6 +110,7 @@ cd infra && terraform destroy   # bootstrap/ is untouched (protected by prevent_
 - **The same ORM code runs against SQLite (tests) and PostgreSQL (dev/prod)** — tests run fully isolated and in-memory via dependency overrides (`app.dependency_overrides[get_db]`), with zero external services required to run the suite.
 - **Metric label cardinality is controlled** — HTTP metrics key off the route _template_ (`/tasks/{task_id}`) rather than the resolved path, preventing unbounded label growth as the number of tasks increases.
 - **Dependencies are locked with pip-tools** — `requirements.in`/`.txt` separate declared intent from the fully resolved dependency tree; production and dev dependencies are locked independently, keeping test tooling out of the production image entirely.
+- **Alert design follows the three pillars (latency, error rate, availability)** — each rule uses a `for:` window to filter momentary spikes from real incidents, rather than firing on a single noisy sample.
 
 ## Testing
 
