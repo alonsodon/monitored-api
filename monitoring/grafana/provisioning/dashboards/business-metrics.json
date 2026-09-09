@@ -115,7 +115,7 @@
           },
           "editorMode": "code",
           "expr": "increase(app_tasks_created_total[1h])",
-          "legendFormat": "{{Created}}",
+          "legendFormat": "Created",
           "range": true,
           "refId": "A"
         },
@@ -127,7 +127,7 @@
           "editorMode": "code",
           "expr": "increase(app_tasks_completed_total[1h])",
           "instant": false,
-          "legendFormat": "{{Completed}}",
+          "legendFormat": "Completed",
           "range": true,
           "refId": "B"
         }
