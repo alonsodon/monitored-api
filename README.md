@@ -58,7 +58,13 @@ infra/
 └── bootstrap/                                  # S3 state bucket, DynamoDB lock, OIDC role, ECR — permanent
 monitoring/
 ├── prometheus.yml      # scrape config + reference to alert_rules.yml
-└── alert_rules.yml     # alerting rules: error rate, P95 latency, uptime
+├── alert_rules.yml     # alerting rules: error rate, P95 latency, uptime
+└── grafana/
+    └── provisioning/
+        ├── datasources/datasource.yml       # Prometheus datasource, fixed UID
+        └── dashboards/
+            ├── dashboards.yml                # tells Grafana where to find dashboard JSON
+            └── business-metrics.json         # exported dashboard, versioned
 scripts/                                             # AWS cost/resource audit helpers
 docker-compose.yml                                     # local stack: api + db + prometheus + grafana
 Dockerfile                                               # multi-stage production build
@@ -71,7 +77,7 @@ cp .env.example .env                 # fill in local secrets
 docker compose up -d                 # api + db + prometheus + grafana
 docker compose exec api alembic upgrade head
 curl http://localhost:8000/health    # {"status":"ok"}
-open http://localhost:3000           # Grafana (admin/admin) — add datasource http://prometheus:9090
+open http://localhost:3000           # Grafana (admin/admin) — Prometheus datasource and dashboards are provisioned automatically
 pytest tests/ --cov=app              # 20 tests, ~94% coverage
 ```
 
@@ -111,6 +117,8 @@ cd infra && terraform destroy   # bootstrap/ is untouched (protected by prevent_
 - **Metric label cardinality is controlled** — HTTP metrics key off the route _template_ (`/tasks/{task_id}`) rather than the resolved path, preventing unbounded label growth as the number of tasks increases.
 - **Dependencies are locked with pip-tools** — `requirements.in`/`.txt` separate declared intent from the fully resolved dependency tree; production and dev dependencies are locked independently, keeping test tooling out of the production image entirely.
 - **Alert design follows the three pillars (latency, error rate, availability)** — each rule uses a `for:` window to filter momentary spikes from real incidents, rather than firing on a single noisy sample.
+- **Grafana datasources and dashboards are provisioned as code, not clicked together** — a fresh `docker compose up` reproduces the exact Prometheus connection and business-metrics dashboard on any machine, with zero manual setup.
+- **The Grafana dashboard JSON is exported via `GET /api/dashboards/uid/...`, not the GUI's "JSON Model" view** — Grafana 13 changed that export to an internal schema (`elements`/`layout`/`vizConfig`) that classic file-based provisioning doesn't yet accept ([grafana/grafana#123607](https://github.com/grafana/grafana/issues/123607)); the legacy REST API still returns the schema the provisioner expects.
 
 ## Testing
 
